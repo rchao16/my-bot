@@ -1,0 +1,23 @@
+{
+  "name": "my-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.21.1",
+    "discord.js": "^12.5.1",
+    "dotenv": "^8.2.0",
+    "keyv": "^4.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.7"
+  }
+}
