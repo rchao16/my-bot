@@ -1,41 +1,91 @@
 require("dotenv").config()
-const axios = require("axios")
+const AWS = require('aws-sdk')
 const Discord = require("discord.js")
-const { prefix, token } = require('./config.json');
+const axios = require("axios")
+
+AWS.config.update({
+    region: process.env.AWS_DEFAULT_REGION,
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY 
+})
+
 const client = new Discord.Client()
-const Keyv = require('keyv')
-
-const keyv = new Keyv()
-
-keyv.on('error', err => console.error('Keyv connection error:', err));
+const docClient = new AWS.DynamoDB.DocumentClient();
+const prefix = "!"
 
 function getRndInteger(min, max) {
     return Math.floor(Math.random() * (max - min) ) + min;
   }
-function sendVerify(member, response) {
+
+    function sendVerify(member, response, username) {
+    const verified = member.guild.roles.cache.get('804910729555083295')
     const properties = response.data.data.properties
-    const randProp = getRndInteger(0, properties.length)
-    const randomSell = getRndInteger(5000000, 5000000000)
-    const toVerify = properties[randProp].full_address
-    member.send(`set ${toVerify} to ${randomSell}`)
-    let verifyObject = {
-        property: toVerify,
-        price: randomSell
+
+    //verify user
+
+    const getParams = {
+        TableName: "upland-discord-bot",
+        Key: {
+            "id": member.id
+        }
     }
-    keyv.set(verifyObject, JSON.stringify(verifyObject))
-  console.log('verifyObject', verifyObject);
+
+    let didVerify = docClient.get(getParams)
+        .promise()
+        .then(data => {
+            if (Object.keys(data).length > 0){
+                const {property, price} = data.Item.answer
+                for (let i=0 ; i < properties.length ; i++){
+                    if (properties[i].full_address === property 
+                        && properties[i].sale_price_upx === price) {
+                            member.roles.add(verified)
+                            member.setNickname(username)
+                            return true
+                    }
+                }
+            } else {
+                return false
+            }
+        })
+        .then(didVerify => {
+            if (didVerify === false){
+                const randProp = getRndInteger(0, properties.length)
+                const randomSell = getRndInteger(999999, 99999999)
+                const toVerify = properties[randProp].full_address
+                member.send(`set ${toVerify} to ${randomSell}`)
+        
+                let putParams = {
+                    TableName: 'upland-discord-bot',
+                    Item: {
+                        "id": member.id,
+                        "username": username,
+                        "answer": {
+                            "property": toVerify,
+                            "price": randomSell
+                        }
+                    }
+                }
+                docClient.put(putParams)
+                .promise()
+                .then(data => {
+                    console.log('created!')
+                })
+                .catch(console.error)
+            }
+        })
+        .catch(console.error)
 } 
 
 client.on("ready", () => {
   console.log(`Logged in as ${client.user.tag}!`)
 })
 
-
 client.on("message", (msg) => {
-    if (!msg.guild) return;
-    let verified = msg.guild.roles.cache.get('804910729555083295')
     let member = msg.member
 
+    //check if msg sent from server
+    if (!msg.guild) return;
+    //check for command
     if (!msg.content.startsWith(prefix) || msg.author.bot) return;
 
     const args = msg.content.slice(prefix.length).trim().split(/ +/);
@@ -46,25 +96,22 @@ client.on("message", (msg) => {
         const url = `http://127.0.0.1:5544/upland/${username}`
         axios.get(url)
         .then(function (response) {
-            sendVerify(member, response)
+            sendVerify(member, response, username)
         })
         .catch(function (error) {
           console.log(error);
         })
         .then(function () {
-          // always executed
+
         }); 
-
-        // member.roles.add(verified)
-
     }
 })
 
 client.on("guildMemberAdd", (member) => {
-
     member.send(
-      `Verify yourself by setting`
+      `Verify yourself by using "!verify <upland_username>", 
+      changing the necessary sale price and then "!verify <upland_username>" again!`
     )
-  })
+})
 
-client.login(token);
+client.login(process.env.BOT_TOKEN);

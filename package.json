@@ -12,10 +12,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "aws-sdk": "^2.834.0",
     "axios": "^0.21.1",
     "discord.js": "^12.5.1",
-    "dotenv": "^8.2.0",
-    "keyv": "^4.0.3"
+    "dotenv": "^8.2.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.7"
