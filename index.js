@@ -93,7 +93,7 @@ client.on("message", (msg) => {
     const command = args.shift().toLowerCase();
 
     if (command === "verify") {
-        const url = `http://127.0.0.1:5544/upland/${username}`
+        const url = `https://api.uplandworld.me/upland/{username}`
         axios.get(url)
         .then(function (response) {
             sendVerify(member, response, username)
